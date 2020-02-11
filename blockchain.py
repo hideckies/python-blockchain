@@ -194,38 +194,41 @@ def register_with_existing_node():
         return response.content, response.status_code
 
 
+def create_chain_from_dump(chain_dump):
+    generated_blockchain = Blockchain()
+    generated_blockchain.create_genesis_block()
+    for idx, block_data in enumerate(chain_dump):
+        if idx == 0:
+            continue    # skip genesis block
+        block = Block(block_data["index"],
+                      block_data["transactions"],
+                      block_data["timestamp"],
+                      block_data["previous_hash"],
+                      block_data["nonce"])
+        proof = block_data['hash']
+        added = generated_blockchain.add_block(block, proof)
+        if not added:
+            raise Exception("The chain dump is tampered!!")
+
+    return generated_blockchain
+
+
 @app.route('/add_block', methods=['POST'])
 def verify_and_add_block():
     block_data = request.get_json()
     block = Block(block_data["index"],
                   block_data["transactions"],
                   block_data["timestamp"],
-                  block_data["previous_hash"])
+                  block_data["previous_hash"],
+                  block_data["nonce"])
 
     proof = block_data['hash']
     added = blockchain.add_block(block, proof)
 
     if not added:
-        return "The block was discarded by the node", 404
+        return "The block was discarded by the node", 400
 
     return "Block added to the chain", 201
-
-
-def create_chain_from_dump(chain_dump):
-    blockchain = Blockchain()
-    for idx, block_data in enumerate(chain_dump):
-        block = Block(block_data["index"],
-                      block_data["transaction"],
-                      block_data["timestamp"],
-                      block_data["previous_hash"])
-        proof = block_data['hash']
-        if idx > 0:
-            added = blockchain.add_block(block, proof)
-            if not added:
-                raise Exception("The chain dump is tampered!!")
-        else:   # genesis block is no verification needed
-            blockchain.chain.append(block)
-    return blockchain
 
 
 @app.route('/pending_tx')
@@ -240,7 +243,7 @@ def consensus():
     current_len = len(blockchain.chain)
 
     for node in peers:
-        response = requests.get('{}/chain'.format(node))
+        response = requests.get('{}chain'.format(node))
         length = response.json()['length']
         chain = response.json()['chain']
         if length > current_len and blockchain.check_chain_validity(chain):
@@ -257,4 +260,7 @@ def consensus():
 def announce_new_block(block):
     for peer in peers:
         url = "{}add_block".format(peer)
-        requests.post(url, data=json.dumps(block.__dict__, sort_keys=True))
+        headers = {"Content-Type": "application/json"}
+        requests.post(url,
+                      data=json.dumps(block.__dict__, sort_keys=True),
+                      headers=headers)
