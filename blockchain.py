@@ -123,7 +123,7 @@ blockchain.create_genesis_block()
 peers = set()
 
 
-@app.route('/new-transaction', methods=['POST'])
+@app.route('/new_transaction', methods=['POST'])
 def new_transaction():
     tx_data = request.get_json()
     required_fields = ["author", "content"]
