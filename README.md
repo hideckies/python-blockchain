@@ -32,7 +32,9 @@ $env:FLASK_APP=blockchain.py
 
 <br />
 
-Start blockchain node server:<br />
+## 2. Start node server
+
+Start a blockchain node server:<br />
 
 ```
 flask run --port 8000
@@ -40,7 +42,7 @@ flask run --port 8000
 
 <br />
 
-## Run application
+## 3. Run application
 
 Open a different terminal then start application as follows:<br />
 
